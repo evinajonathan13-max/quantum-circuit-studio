@@ -47,9 +47,13 @@ The four canvas views have different jobs. The **Schematic** is the editable spa
 
 Topology Lens loads the `3d-force-graph` dependency only when its view is opened. It renders the same component IDs and valid graph links as the local document. A node click routes back to the same inspector used by the 2D schematic. The lens is consequently an exploration tool rather than a second editor or a claim about physical geometry.
 
+![Topology Lens 3D from the bundled transmon-microcell demonstration](images/screens/topology-3d.webp)
+
 ### Layer Stack
 
 Layer Stack places qubits and couplers in conceptual metal and Josephson proxies, readout resonators in the resonator layer, and feedlines or flux lines in the control layer. The vertical separation makes families of components readable during a design discussion. The `z` levels are visual offsets, not process thicknesses, dielectric definitions or a PDK.
+
+![Layer Stack from the bundled transmon-microcell demonstration](images/screens/layer-stack.webp)
 
 ## Code map
 

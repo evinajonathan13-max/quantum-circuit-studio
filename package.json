@@ -8,7 +8,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test"
+    "test": "node --test",
+    "docs:check": "node scripts/verify-doc-links.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.9"

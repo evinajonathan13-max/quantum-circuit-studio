@@ -41,6 +41,10 @@ pnpm build
 
 Load the included **transmon-microcell** demonstration, inspect a component, run local checks, then open the 3D and analytical views. The full step-by-step workflow is in [Getting started](docs/GETTING_STARTED.md).
 
+| Schematic | Topology Lens 3D |
+|---|---|
+| ![Real Schematic view](docs/images/screens/schematic.webp) | ![Real Topology Lens view](docs/images/screens/topology-3d.webp) |
+
 ## Capabilities
 
 | Capability | What it provides now | Deliberate boundary |

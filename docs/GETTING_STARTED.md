@@ -22,6 +22,8 @@ pnpm build
 
 The fastest way to understand the studio is to load the included `transmon-microcell` demonstration. It contains two transmons, a tunable coupler, two readout resonators and a shared feedline. Select any component to inspect its identifier, frequency, 2D position, notes and graph links. The inspector edits the local source model; the 3D and analytical views derive from that same model.
 
+![The real Schematic view using the bundled transmon-microcell demonstration](images/screens/schematic.webp)
+
 | Step | Action | What to look for |
 |---|---|---|
 | 1 | Select **Load demo** | A complete two-transmon local graph appears. |
@@ -45,6 +47,12 @@ The schematic is intentionally not a mask editor. Coordinates are a compact spat
 | **Topology 3D** | Which elements are related in the graph? | Is this the true three-dimensional chip geometry? |
 | **Layer Stack** | Which conceptual family of material layer does each component belong to? | Is this a process stack or mask set? |
 | **Frequency Map** | Which qubits are spectrally close in the local model? | What frequencies will a fabricated device measure? |
+
+The following captures show the real optional exploration views using the same bundled local demonstration. They document the current browser interface; they are not fabrication or EM evidence.
+
+| Topology Lens | Layer Stack |
+|---|---|
+| ![Topology Lens 3D real interface capture](images/screens/topology-3d.webp) | ![Layer Stack real interface capture](images/screens/layer-stack.webp) |
 
 ## Work with the local model deliberately
 

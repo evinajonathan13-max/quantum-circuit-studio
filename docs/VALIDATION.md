@@ -20,6 +20,8 @@ The local validator checks the JSON model for unique component identifiers, vali
 
 Frequency Map compares each qubit to its closest nominal spectral neighbour. It uses a red collision state below `0.08 GHz`, a review state below `0.20 GHz`, and a stable state at or above `0.20 GHz`. These values are fixed, explicit **working thresholds** in the local tool. They help maintain a consistent design conversation and test suite; they are not universal transmon-design laws.
 
+![Frequency Map and Crosstalk Risk Map from the bundled transmon-microcell demonstration](images/screens/frequency-map.webp)
+
 | State | Local condition | Correct action |
 |---|---|---|
 | Collision | separation `< 0.08 GHz` | Inspect the pair; correct the modelling assumption or define a more suitable target frequency. |
