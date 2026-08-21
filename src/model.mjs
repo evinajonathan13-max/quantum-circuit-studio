@@ -95,3 +95,53 @@ export function validateCircuit(circuit) {
 export function exportCircuit(circuit) {
   return JSON.stringify({ ...circuit, exportedAt: new Date().toISOString() }, null, 2);
 }
+
+export function exportOpenQasm(circuit) {
+  const qubits = circuit.nodes.filter((node) => node.kind === "qubit");
+  const indexById = new Map(qubits.map((qubit, index) => [qubit.id, index]));
+  const lines = [
+    "OPENQASM 3.0;",
+    'include "stdgates.inc";',
+    "",
+    `// Quantum Circuit Studio logical topology export: ${circuit.name}`,
+    "// This file maps a schematic graph to a logical circuit scaffold.",
+    "// It is not an EM simulation, calibration schedule, or fabrication recipe.",
+    ""
+  ];
+
+  if (qubits.length === 0) {
+    lines.push("// No transmon components are present; no logical qubits were emitted.");
+    return `${lines.join("\n")}\n`;
+  }
+
+  lines.push(`qubit[${qubits.length}] q;`, `bit[${qubits.length}] c;`, "", "// Physical-to-logical register map");
+  qubits.forEach((qubit, index) => lines.push(`// q[${index}] ← ${qubit.id} (${qubit.frequency} ${qubit.unit})`));
+
+  const couplers = circuit.nodes.filter((node) => node.kind === "coupler");
+  const emittedPairs = new Set();
+  const emitInteraction = (firstId, secondId, source) => {
+    const firstIndex = indexById.get(firstId);
+    const secondIndex = indexById.get(secondId);
+    if (firstIndex === undefined || secondIndex === undefined || firstIndex === secondIndex) return;
+    const key = [firstIndex, secondIndex].sort((a, b) => a - b).join(":");
+    if (emittedPairs.has(key)) return;
+    emittedPairs.add(key);
+    lines.push(`// ${source}`, `cz q[${firstIndex}], q[${secondIndex}];`);
+  };
+
+  lines.push("", "// Entangling topology inferred from schematic links");
+  couplers.forEach((coupler) => {
+    const attachedQubits = linksFor(circuit, coupler.id).filter((id) => indexById.has(id));
+    for (let index = 0; index < attachedQubits.length - 1; index += 1) {
+      emitInteraction(attachedQubits[index], attachedQubits[index + 1], `coupler ${coupler.id}`);
+    }
+  });
+  circuit.edges.forEach(([first, second]) => {
+    if (indexById.has(first) && indexById.has(second)) emitInteraction(first, second, "direct qubit graph link");
+  });
+  if (emittedPairs.size === 0) lines.push("// No qubit-to-qubit interaction was inferred from the current graph.");
+
+  lines.push("", "// Readout scaffold");
+  qubits.forEach((_, index) => lines.push(`c[${index}] = measure q[${index}];`));
+  return `${lines.join("\n")}\n`;
+}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, removeNode, validateCircuit } from "../src/model.mjs";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, removeNode, validateCircuit } from "../src/model.mjs";
 
 test("adds components with a stable unique identifier", () => {
   const first = addNode(createEmptyCircuit(), "qubit");
@@ -34,4 +34,19 @@ test("export creates a portable JSON document", () => {
   assert.equal(exported.schema, "quantum-circuit-studio/v0.1");
   assert.equal(exported.nodes.length, 6);
   assert.ok(exported.exportedAt);
+});
+
+test("OpenQASM export maps transmons and coupler topology to a logical circuit scaffold", () => {
+  const qasm = exportOpenQasm(createDemoCircuit());
+  assert.match(qasm, /^OPENQASM 3\.0;/);
+  assert.match(qasm, /qubit\[2\] q;/);
+  assert.match(qasm, /coupler c0/);
+  assert.match(qasm, /cz q\[0\], q\[1\];/);
+  assert.match(qasm, /c\[0\] = measure q\[0\];/);
+});
+
+test("OpenQASM export explains an empty schematic instead of emitting invalid registers", () => {
+  const qasm = exportOpenQasm(createEmptyCircuit());
+  assert.match(qasm, /No transmon components are present/);
+  assert.doesNotMatch(qasm, /qubit\[/);
 });

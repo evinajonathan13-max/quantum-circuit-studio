@@ -1,4 +1,4 @@
-import { COMPONENTS, addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, linksFor, removeNode, updateNode, validateCircuit } from "./model.mjs";
+import { COMPONENTS, addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, linksFor, removeNode, updateNode, validateCircuit } from "./model.mjs";
 
 const canvas = document.querySelector("#circuit-canvas");
 const layer = document.querySelector("#connection-layer");
@@ -14,6 +14,17 @@ const kindClass = (kind) => `node-${kind}`;
 
 function syncProjectName() {
   state.circuit = { ...state.circuit, name: projectInput.value.trim() || "untitled-circuit" };
+}
+
+function downloadCircuit(contents, type, extension) {
+  const safeName = state.circuit.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "circuit";
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${safeName}.${extension}`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function selectNode(id, additive = false) {
@@ -88,7 +99,8 @@ document.querySelectorAll("[data-add]").forEach((button) => button.addEventListe
 connectButton.addEventListener("click", () => { state.circuit = connectNodes(state.circuit, ...state.selection); state.issues = []; render(); });
 $("#validate-circuit").addEventListener("click", () => { syncProjectName(); state.issues = validateCircuit(state.circuit); render(); });
 $("#load-demo").addEventListener("click", () => { state.circuit = createDemoCircuit(); projectInput.value = state.circuit.name; state.selection = []; state.issues = []; render(); });
-$("#export-json").addEventListener("click", () => { syncProjectName(); const blob = new Blob([exportCircuit(state.circuit)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${state.circuit.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "circuit"}.json`; link.click(); URL.revokeObjectURL(url); });
+$("#export-json").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportCircuit(state.circuit), "application/json", "json"); });
+$("#export-qasm").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportOpenQasm(state.circuit), "text/plain;charset=utf-8", "qasm"); });
 
 inspector.addEventListener("input", (event) => {
   const selected = state.selection.at(-1); if (!selected) return;

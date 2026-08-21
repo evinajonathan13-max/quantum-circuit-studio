@@ -12,6 +12,7 @@ It is not a fabrication, simulation or tapeout system. It is a compact, inspecta
 | Circuit links | Selection-based graph connections between placed elements. |
 | Local checks | Unique identifier, positive frequency, qubit frequency-separation, readout-path and broken-link checks. |
 | Portable output | Downloadable, neutral JSON model under `quantum-circuit-studio/v0.1`. |
+| OpenQASM export | Downloadable OpenQASM 3 logical scaffold derived from transmons and coupler topology. |
 | Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
 
 ## Local development
@@ -30,6 +31,12 @@ pnpm test
 ## Project boundary
 
 This is an original implementation. It does not copy source code, UI assets, schemas or compiler implementations from SilicoFeller or other platforms. Its public reference review is recorded in [`DISCOVERY_NOTES.md`](DISCOVERY_NOTES.md). The tool currently makes **no third-party design API calls**.
+
+## About the OpenQASM export
+
+The `.qasm` export is intentionally a **logical topology adapter**. Each placed transmon becomes an OpenQASM register element; qubits connected through a tunable coupler become a `cz` interaction; and all logical qubits receive a measurement scaffold. It is useful as a portable starting point for logical-circuit workflows.
+
+It does **not** turn a superconducting layout into calibrated pulses, an electromagnetic simulation, a fabrication file or a hardware-ready schedule. Component frequencies and layout geometry are retained as comments for traceability rather than treated as executable QASM parameters.
 
 ## Next technical directions
 
