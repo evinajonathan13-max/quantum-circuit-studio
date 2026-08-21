@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, removeNode, topologyGraph, updateNode, validateCircuit } from "../src/model.mjs";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "../src/model.mjs";
+import { exportConceptualStep, exportConceptualStl } from "../src/mechanical-export.mjs";
 
 test("adds components with a stable unique identifier", () => {
   const first = addNode(createEmptyCircuit(), "qubit");
@@ -75,4 +76,25 @@ test("frequency heatmap flags a true qubit collision and validation carries the 
   assert.ok(Math.abs(collisions[0].separation - 0.05) < 1e-9);
   assert.equal(heatmap.find((entry) => entry.id === "q0").risk, "collision");
   assert.ok(issues.some((issue) => issue.title === "Possible frequency collision"));
+});
+
+test("optimizer separates a collision in frequency targets and records transparent placement changes", () => {
+  const collisionCircuit = updateNode(createDemoCircuit(), "q1", { frequency: 5.01 });
+  const result = optimizeCircuit(collisionCircuit);
+  const optimizedQubits = result.circuit.nodes.filter((node) => node.kind === "qubit").sort((first, second) => first.id.localeCompare(second.id));
+  assert.ok(result.placementChanges.length > 0);
+  assert.equal(result.frequencyChanges.length, 1);
+  assert.ok(Math.abs(optimizedQubits[1].frequency - optimizedQubits[0].frequency) >= 0.25);
+  assert.equal(frequencyCollisions(result.circuit).length, 0);
+});
+
+test("conceptual mechanical exports retain explicit non-fabrication markers", () => {
+  const stl = exportConceptualStl(createDemoCircuit());
+  const step = exportConceptualStep(createDemoCircuit());
+  assert.match(stl, /^solid transmon-microcell_conceptual_layer_stack/);
+  assert.match(stl, /NOT A FABRICATION/);
+  assert.match(stl, /facet normal/);
+  assert.match(step, /^ISO-10303-21;/);
+  assert.match(step, /CONCEPTUAL GEOMETRY ONLY/);
+  assert.match(step, /conceptual metal layer proxy/);
 });

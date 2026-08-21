@@ -135,6 +135,68 @@ export function frequencyHeatmap(circuit, collisionThresholdGHz = 0.08, watchThr
   });
 }
 
+export function optimizeCircuit(circuit, { targetFrequencySeparationGHz = 0.25 } = {}) {
+  const nodes = circuit.nodes.map((node) => ({ ...node }));
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const placementChanges = [];
+  const frequencyChanges = [];
+  const move = (id, x, y) => {
+    const node = nodeById.get(id);
+    if (!node) return;
+    const nextX = Math.round(x * 10) / 10;
+    const nextY = Math.round(y * 10) / 10;
+    if (node.x !== nextX || node.y !== nextY) placementChanges.push({ id, from: { x: node.x, y: node.y }, to: { x: nextX, y: nextY } });
+    node.x = nextX;
+    node.y = nextY;
+  };
+
+  const qubits = nodes.filter((node) => node.kind === "qubit");
+  const columns = Math.max(1, Math.ceil(Math.sqrt(qubits.length)));
+  qubits.forEach((qubit, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const x = columns === 1 ? 50 : 24 + column * (52 / (columns - 1));
+    move(qubit.id, x, 32 + row * 28);
+  });
+
+  nodes.filter((node) => node.kind === "coupler").forEach((coupler) => {
+    const attached = linksFor(circuit, coupler.id).map((id) => nodeById.get(id)).filter((node) => node?.kind === "qubit");
+    if (attached.length >= 2) move(coupler.id, (attached[0].x + attached[1].x) / 2, (attached[0].y + attached[1].y) / 2);
+  });
+  nodes.filter((node) => node.kind === "resonator").forEach((resonator) => {
+    const qubit = linksFor(circuit, resonator.id).map((id) => nodeById.get(id)).find((node) => node?.kind === "qubit");
+    if (qubit) move(resonator.id, qubit.x, Math.min(84, qubit.y + 30));
+  });
+  nodes.filter((node) => node.kind === "feedline").forEach((feedline) => {
+    const resonators = linksFor(circuit, feedline.id).map((id) => nodeById.get(id)).filter((node) => node?.kind === "resonator");
+    if (resonators.length) move(feedline.id, resonators.reduce((sum, node) => sum + node.x, 0) / resonators.length, 84);
+  });
+  nodes.filter((node) => node.kind === "flux").forEach((flux) => {
+    const coupler = linksFor(circuit, flux.id).map((id) => nodeById.get(id)).find((node) => node?.kind === "coupler");
+    if (coupler) move(flux.id, coupler.x, Math.max(12, coupler.y - 26));
+  });
+
+  const orderedQubits = [...qubits].sort((first, second) => Number(first.frequency) - Number(second.frequency));
+  orderedQubits.forEach((qubit, index) => {
+    if (index === 0) return;
+    const previous = orderedQubits[index - 1];
+    const requiredMinimum = Number(previous.frequency) + targetFrequencySeparationGHz;
+    if (Number(qubit.frequency) < requiredMinimum) {
+      const from = Number(qubit.frequency);
+      qubit.frequency = Math.round(requiredMinimum * 1000) / 1000;
+      frequencyChanges.push({ id: qubit.id, from, to: qubit.frequency, minimumSeparationGHz: targetFrequencySeparationGHz });
+    }
+  });
+
+  return {
+    circuit: { ...circuit, nodes },
+    placementChanges,
+    frequencyChanges,
+    targetFrequencySeparationGHz,
+    assumptions: ["Placement is a local spacing heuristic, not an EM or crosstalk solver.", "Frequency targets are a local proposal; they require hardware calibration before use."]
+  };
+}
+
 export function validateCircuit(circuit) {
   const issues = [];
   if (circuit.nodes.length === 0) issues.push({ level: "error", title: "Empty circuit", detail: "Place at least one component before running checks." });

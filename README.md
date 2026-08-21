@@ -16,6 +16,8 @@ It is not a fabrication, simulation or tapeout system. It is a compact, inspecta
 | Topology Lens | Optional 3D WebGL view of the exact circuit graph; it supports camera exploration and component selection without changing the 2D schematic. |
 | Layer Stack | Optional 3D separation of inferred metal, Josephson, resonator and control layers, with source-component selection. |
 | Frequency Map | Local qubit-frequency heatmap with a 0.08 GHz collision threshold and a 0.20 GHz review zone. |
+| Local optimizer | Applies a transparent spacing heuristic and proposes a 0.25 GHz minimum qubit-frequency separation. |
+| Mechanical exports | Downloadable ASCII STL and STEP conceptual proxies of the Layer Stack. |
 | Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
 
 ## Local development
@@ -52,6 +54,12 @@ The selection colour palette is semantic: transmons are mint, couplers violet, r
 **Layer Stack** projects the same local circuit graph into four explicit visual layers: metal, Josephson, resonator and control. A transmon or tunable coupler is shown both as a metal proxy and a Josephson proxy; resonators occupy the resonator layer; feedlines and flux lines occupy the control layer. This is an explanatory 3D stack for topology and design discussion, **not** a process-design kit, mask layer, fabrication stack or electromagnetic solution.
 
 **Frequency Map** reads the current transmon frequencies directly from the local model. It marks nearest-neighbour separation below `0.08 GHz` as a collision and below `0.20 GHz` as a review zone. These are transparent design-aid thresholds already used by the studio’s local validation; they are not a substitute for hardware calibration or full crosstalk analysis.
+
+## Optimizer and Mechanical Exports
+
+**Optimize layout** makes two deliberately separate local proposals. First, it redistributes qubits on an inspectable grid, centers coupled elements between their connected qubits, aligns readout resonators and places the shared feedline beneath them. This is a **spacing heuristic**, not an electromagnetic, crosstalk, routing or yield solver. Second, it raises only the frequency targets that violate a local `0.25 GHz` minimum separation. The resulting placement and every frequency target changed are displayed in the Optimizer Trace. These target values remain proposals that need device-specific calibration.
+
+The **STL** and **STEP** exports represent every inferred Layer Stack proxy as a simple conceptual solid. They are useful to carry the explanatory architecture into a mechanical/CAD review workflow. They are explicitly not a PDK, GDSII, mask, toleranced mechanical design, package model, fabrication geometry, or electromagnetic solution. Each exported file carries this warning in its own contents.
 
 ## Next technical directions
 

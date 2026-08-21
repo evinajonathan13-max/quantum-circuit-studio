@@ -1,4 +1,5 @@
-import { COMPONENTS, MATERIAL_LAYERS, addNode, connectNodes, createDemoCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, linksFor, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
+import { COMPONENTS, MATERIAL_LAYERS, addNode, connectNodes, createDemoCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, linksFor, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
+import { exportConceptualStep, exportConceptualStl } from "./mechanical-export.mjs";
 
 const canvas = document.querySelector("#circuit-canvas");
 const topologyCanvas = document.querySelector("#topology-canvas");
@@ -12,7 +13,7 @@ const inspector = document.querySelector("#inspector");
 const inspectorEmpty = document.querySelector("#inspector-empty");
 const projectInput = document.querySelector("#project-name");
 const connectButton = document.querySelector("#connect-selection");
-const state = { circuit: createDemoCircuit(), selection: [], issues: [], view: "schematic" };
+const state = { circuit: createDemoCircuit(), selection: [], issues: [], view: "schematic", optimizer: null };
 let topologyLens;
 let topologyLoading;
 let layerLens;
@@ -99,6 +100,17 @@ function renderValidation() {
   badge.className = `validation-badge ${hasError ? "error" : hasWarning ? "warning" : "success"}`;
   badge.textContent = hasError ? "ACTION NEEDED" : hasWarning ? "REVIEW" : "PASS";
   results.innerHTML = state.issues.map((issue) => `<article class="issue ${issue.level}"><span>${issue.level === "success" ? "✓" : issue.level === "warning" ? "!" : "×"}</span><div><strong>${escapeText(issue.title)}</strong><p>${escapeText(issue.detail)}</p></div></article>`).join("");
+}
+
+function renderOptimizer() {
+  const results = $("#optimizer-results"); const badge = $("#optimizer-badge");
+  if (!state.optimizer) { badge.className = "validation-badge neutral"; badge.textContent = "IDLE"; results.innerHTML = "<p>Optimize layout to receive spacing adjustments and frequency-target proposals.</p>"; return; }
+  const { placementChanges, frequencyChanges, targetFrequencySeparationGHz, assumptions } = state.optimizer;
+  badge.className = "validation-badge success";
+  badge.textContent = "APPLIED";
+  const placement = placementChanges.length ? `${placementChanges.length} placement adjustment${placementChanges.length > 1 ? "s" : ""}` : "Placement already matched the spacing heuristic";
+  const frequencies = frequencyChanges.length ? frequencyChanges.map((change) => `${escapeText(change.id)} ${change.from.toFixed(3)} → ${change.to.toFixed(3)} GHz`).join("<br>") : "No frequency target changes were required.";
+  results.innerHTML = `<p><strong>${placement}</strong></p><p>Target separation: ${targetFrequencySeparationGHz.toFixed(2)} GHz.</p><p>${frequencies}</p><p class="optimizer-note">${assumptions.map(escapeText).join(" ")}</p>`;
 }
 
 async function ensureTopologyLens() {
@@ -201,7 +213,7 @@ function setView(view) {
 }
 
 function render() {
-  renderConnections(); renderNodes(); renderInspector(); renderValidation();
+  renderConnections(); renderNodes(); renderInspector(); renderValidation(); renderOptimizer();
   $("#node-count").textContent = `${state.circuit.nodes.length} NODES`; $("#edge-count").textContent = `${state.circuit.edges.length} LINKS`;
   $("#component-total").textContent = `${state.circuit.nodes.length} PARTS`;
   connectButton.disabled = state.selection.length !== 2;
@@ -209,22 +221,25 @@ function render() {
 }
 
 document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => {
-  state.circuit = addNode(state.circuit, button.dataset.add); state.selection = [state.circuit.nodes.at(-1).id]; state.issues = []; render();
+  state.circuit = addNode(state.circuit, button.dataset.add); state.selection = [state.circuit.nodes.at(-1).id]; state.issues = []; state.optimizer = null; render();
 }));
 
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
-connectButton.addEventListener("click", () => { state.circuit = connectNodes(state.circuit, ...state.selection); state.issues = []; render(); });
+connectButton.addEventListener("click", () => { state.circuit = connectNodes(state.circuit, ...state.selection); state.issues = []; state.optimizer = null; render(); });
 $("#validate-circuit").addEventListener("click", () => { syncProjectName(); state.issues = validateCircuit(state.circuit); render(); });
-$("#load-demo").addEventListener("click", () => { state.circuit = createDemoCircuit(); projectInput.value = state.circuit.name; state.selection = []; state.issues = []; render(); });
+$("#load-demo").addEventListener("click", () => { state.circuit = createDemoCircuit(); projectInput.value = state.circuit.name; state.selection = []; state.issues = []; state.optimizer = null; render(); });
+$("#optimize-circuit").addEventListener("click", () => { syncProjectName(); state.optimizer = optimizeCircuit(state.circuit); state.circuit = state.optimizer.circuit; state.selection = []; state.issues = validateCircuit(state.circuit); render(); });
 $("#export-json").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportCircuit(state.circuit), "application/json", "json"); });
 $("#export-qasm").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportOpenQasm(state.circuit), "text/plain;charset=utf-8", "qasm"); });
+$("#export-stl").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportConceptualStl(state.circuit), "model/stl", "stl"); });
+$("#export-step").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportConceptualStep(state.circuit), "application/step", "step"); });
 
 inspector.addEventListener("input", () => {
   const selected = state.selection.at(-1); if (!selected) return;
   const values = { id: $("#field-id").value.trim(), frequency: Number($("#field-frequency").value), unit: $("#field-unit").value, x: Number($("#field-x").value), y: Number($("#field-y").value), notes: $("#field-notes").value };
-  state.circuit = updateNode(state.circuit, selected, values); state.selection = [values.id]; state.issues = []; render();
+  state.circuit = updateNode(state.circuit, selected, values); state.selection = [values.id]; state.issues = []; state.optimizer = null; render();
 });
-$("#remove-selected").addEventListener("click", () => { const selected = state.selection.at(-1); if (!selected) return; state.circuit = removeNode(state.circuit, selected); state.selection = []; state.issues = []; render(); });
+$("#remove-selected").addEventListener("click", () => { const selected = state.selection.at(-1); if (!selected) return; state.circuit = removeNode(state.circuit, selected); state.selection = []; state.issues = []; state.optimizer = null; render(); });
 projectInput.addEventListener("change", syncProjectName);
 window.addEventListener("resize", renderActiveView);
 render();

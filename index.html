@@ -27,6 +27,7 @@
         </div>
         <div class="topbar-actions">
           <button class="quiet-button" id="load-demo">Load demo</button>
+          <button class="quiet-button" id="optimize-circuit">Optimize layout</button>
           <button class="quiet-button" id="export-json">Export JSON</button>
           <button class="quiet-button" id="export-qasm">Export OpenQASM</button>
           <button class="primary-button" id="validate-circuit">Run checks <span>↗</span></button>
@@ -78,7 +79,7 @@
           </div>
           <div class="layer-stack-canvas" id="layer-stack-canvas" aria-label="Interactive layered material view" hidden>
             <div id="layer-stack-view"></div>
-            <div class="topology-overlay layer-overlay"><span>MATERIAL LAYER STACK</span><p>Metal · Josephson · resonator · control</p><div class="layer-legend"><i class="metal"></i>Metal <i class="josephson"></i>Josephson <i class="resonator"></i>Resonator <i class="control"></i>Control</div></div>
+            <div class="topology-overlay layer-overlay"><span>MATERIAL LAYER STACK</span><p>Metal · Josephson · resonator · control</p><div class="layer-legend"><i class="metal"></i>Metal <i class="josephson"></i>Josephson <i class="resonator"></i>Resonator <i class="control"></i>Control</div><div class="layer-export-actions"><button id="export-stl">Export STL</button><button id="export-step">Export STEP</button></div></div>
           </div>
           <div class="frequency-canvas" id="frequency-canvas" aria-label="Qubit frequency heatmap" hidden>
             <div class="frequency-header"><div><span>FREQUENCY SAFETY MAP</span><p>Nearest-neighbour separation and collision detection</p></div><strong id="collision-summary">NO QUBITS</strong></div>
@@ -119,6 +120,10 @@
           <div class="validation-panel">
             <div class="validation-heading"><p class="eyebrow">LOCAL VALIDATION</p><span id="validation-badge" class="validation-badge neutral">READY</span></div>
             <div id="validation-results" class="validation-results"><p>Run checks to inspect topology, frequency separation and required readout paths.</p></div>
+          </div>
+          <div class="optimizer-panel">
+            <div class="validation-heading"><p class="eyebrow">OPTIMIZER TRACE</p><span id="optimizer-badge" class="validation-badge neutral">IDLE</span></div>
+            <div id="optimizer-results" class="optimizer-results"><p>Optimize layout to receive spacing adjustments and frequency-target proposals.</p></div>
           </div>
         </aside>
       </section>
