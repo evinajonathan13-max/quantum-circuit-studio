@@ -1,76 +1,93 @@
 # Quantum Circuit Studio
 
-**Quantum Circuit Studio** is an independent, local-first visual tool for exploring small superconducting quantum-circuit schematics. It was designed as a transparent prototype: users can place a small set of components, create graph links, inspect basic physical parameters, run local consistency checks and export the resulting circuit model as JSON.
+<p align="center">
+  <strong>Local-first exploration for small superconducting quantum-circuit topologies.</strong><br/>
+  Build a compact graph, inspect it through 2D and 3D views, run transparent local checks, and export the right representation for the next engineering conversation.
+</p>
 
-It is not a fabrication, simulation or tapeout system. It is a compact, inspectable starting point for research conversations and early circuit topology sketches.
+<p align="center">
+  <a href="#why-this-tool">Why this tool</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#capabilities">Capabilities</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="#model-boundary">Model boundary</a>
+</p>
 
-## What it does
+![Quantum Circuit Studio architecture](docs/images/architecture.png)
 
-| Capability | Current implementation |
-| --- | --- |
-| Schematic graph | Interactive placement of transmons, tunable couplers, resonators, feedlines and flux lines. |
-| Circuit links | Selection-based graph connections between placed elements. |
-| Local checks | Unique identifier, positive frequency, qubit frequency-separation, readout-path and broken-link checks. |
-| Portable output | Downloadable, neutral JSON model under `quantum-circuit-studio/v0.1`. |
-| OpenQASM export | Downloadable OpenQASM 3 logical scaffold derived from transmons and coupler topology. |
-| Topology Lens | Optional 3D WebGL view of the exact circuit graph; it supports camera exploration and component selection without changing the 2D schematic. |
-| Layer Stack | Optional 3D separation of inferred metal, Josephson, resonator and control layers, with source-component selection. |
-| Frequency Map | Local qubit-frequency heatmap with a 0.08 GHz collision threshold and a 0.20 GHz review zone. |
-| Local optimizer | Applies a transparent spacing heuristic and proposes a 0.25 GHz minimum qubit-frequency separation. |
-| Mechanical exports | Downloadable ASCII STL and STEP conceptual proxies of the Layer Stack. |
-| Crosstalk Risk Map | Explainable local score for each qubit pair using graph adjacency, schematic proximity and frequency detuning. |
-| Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
+## Why this tool
 
-## Local development
+Quantum Circuit Studio is an original, independent research tool for sketching and reviewing **small superconducting quantum-circuit topologies** without requiring a cloud design service. It makes the local circuit graph explicit, then derives readable views, checks and exports from that one source model. The goal is not to imitate a full foundry workflow in a browser. The goal is to make early architectural decisions transparent, traceable and inexpensive to revisit.
+
+> **The local JSON circuit document is the source of truth.** The Schematic, Topology Lens, Layer Stack, Frequency Map, Crosstalk Risk Map, optimizer and exports all derive from it.
+
+![One local model, several honest projections](docs/images/model-projections.png)
+
+## Quick start
+
+Install dependencies, start the local workstation and open the Vite address printed in the terminal.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Run the model tests with:
+Validate the model contracts and produce a production build before sharing an implementation change.
 
 ```bash
 pnpm test
+pnpm build
 ```
 
-## Project boundary
+Load the included **transmon-microcell** demonstration, inspect a component, run local checks, then open the 3D and analytical views. The full step-by-step workflow is in [Getting started](docs/GETTING_STARTED.md).
 
-This is an original implementation. It does not copy source code, UI assets, schemas or compiler implementations from SilicoFeller or other platforms. Its public reference review is recorded in [`DISCOVERY_NOTES.md`](DISCOVERY_NOTES.md). The tool currently makes **no third-party design API calls**.
+## Capabilities
 
-## About the OpenQASM export
+| Capability | What it provides now | Deliberate boundary |
+|---|---|---|
+| **Editable schematic** | Local graph editing for transmons, couplers, resonators, feedlines and flux lines. | It is not a GDSII or mask editor. |
+| **Topology Lens 3D** | A selectable WebGL graph of the same nodes and links. | It is a relationship view, not physical 3D geometry. |
+| **Layer Stack** | Metal, Josephson, resonator and control proxies. | It is not a PDK or process stack. |
+| **Frequency Map** | Nearest-neighbour spacing with `0.08 GHz` collision and `0.20 GHz` review states. | Values are local working assumptions, not calibration. |
+| **Crosstalk Risk Map** | Explainable priority score from adjacency, schematic distance and detuning. | It is not EM extraction or a measured coupling prediction. |
+| **Transparent optimizer** | Visible spacing and `0.25 GHz` frequency-target proposals. | It is not an EM, routing, yield or calibration solver. |
+| **JSON export** | Portable complete local source model. | It does not add physical geometry or process data. |
+| **OpenQASM 3 export** | Logical qubit, inferred `cz` and measurement scaffold. | It is not a calibrated pulse schedule or hardware result. |
+| **STL / STEP export** | Conceptual Layer Stack proxies for discussion. | They are not fabrication or mechanical-release files. |
 
-The `.qasm` export is intentionally a **logical topology adapter**. Each placed transmon becomes an OpenQASM register element; qubits connected through a tunable coupler become a `cz` interaction; and all logical qubits receive a measurement scaffold. It is useful as a portable starting point for logical-circuit workflows.
+## Local validation ladder
 
-It does **not** turn a superconducting layout into calibrated pulses, an electromagnetic simulation, a fabrication file or a hardware-ready schedule. Component frequencies and layout geometry are retained as comments for traceability rather than treated as executable QASM parameters.
+![Local validation ladder and external engineering boundary](docs/images/validation-ladder.png)
 
-## Topology Lens
+The studio checks what its local model can actually know: IDs, graph links, readout-path intent, nominal frequencies, close-frequency warnings, topology projections and export contracts. When the question becomes physical — materials, device modes, coupling extraction, calibration, package effects or QPU execution — the model points to the proper next stage instead of inventing precision.
 
-The studio now includes an optional **Topology 3D** view backed by the open-source `3d-force-graph` package. It renders exactly the same component IDs and graph links as the 2D schematic, but arranges them as a navigable relational graph. It is a reading and exploration view, not a substitute for the editable physical coordinates in the schematic.
+Read [Validation](docs/VALIDATION.md) for each local check, threshold and model boundary.
 
-The selection colour palette is semantic: transmons are mint, couplers violet, resonators amber, feedlines blue and flux lines rose. The research and selection rationale is retained in [`VISUALIZATION_TOOLS.md`](VISUALIZATION_TOOLS.md).
+## Documentation
 
-## Layer Stack and Frequency Map
+| Guide | Purpose |
+|---|---|
+| [Getting started](docs/GETTING_STARTED.md) | Installation, first circuit, selection, connections and views. |
+| [Architecture and local model](docs/ARCHITECTURE.md) | Schema, components, projections and code map. |
+| [Validation and boundaries](docs/VALIDATION.md) | Checks, Frequency Map, optimizer, Crosstalk Risk Map and external handoffs. |
+| [Exports and handoff](docs/EXPORTS.md) | JSON, OpenQASM, conceptual STL and STEP. |
+| [Documentation index](docs/README.md) | Complete navigation and visual-assets note. |
 
-**Layer Stack** projects the same local circuit graph into four explicit visual layers: metal, Josephson, resonator and control. A transmon or tunable coupler is shown both as a metal proxy and a Josephson proxy; resonators occupy the resonator layer; feedlines and flux lines occupy the control layer. This is an explanatory 3D stack for topology and design discussion, **not** a process-design kit, mask layer, fabrication stack or electromagnetic solution.
+## Model boundary
 
-**Frequency Map** reads the current transmon frequencies directly from the local model. It marks nearest-neighbour separation below `0.08 GHz` as a collision and below `0.20 GHz` as a review zone. These are transparent design-aid thresholds already used by the studio’s local validation; they are not a substitute for hardware calibration or full crosstalk analysis.
+Quantum Circuit Studio is intentionally useful **before** a full fabrication or execution workflow. It has no third-party design API calls and does not copy code, assets, schemas or compiler implementations from SilicoFeller or other design platforms. The public-reference review that led to this independent implementation is recorded in [`DISCOVERY_NOTES.md`](DISCOVERY_NOTES.md).
 
-## Optimizer and Mechanical Exports
+The project does not claim to perform electromagnetic extraction, full-wave analysis, material modelling, PDK validation, mask generation, packaging analysis, calibration, pulse compilation or QPU execution. Those steps require additional physical or backend-specific data. [Qiskit Metal](https://qiskit-community.github.io/qiskit-metal/) and the [OpenQASM specification](https://openqasm.com/intro.html) are examples of the separate design and execution layers that can become relevant after a local topology is mature.
 
-**Optimize layout** makes two deliberately separate local proposals. First, it redistributes qubits on an inspectable grid, centers coupled elements between their connected qubits, aligns readout resonators and places the shared feedline beneath them. This is a **spacing heuristic**, not an electromagnetic, crosstalk, routing or yield solver. Second, it raises only the frequency targets that violate a local `0.25 GHz` minimum separation. The resulting placement and every frequency target changed are displayed in the Optimizer Trace. These target values remain proposals that need device-specific calibration.
+## Project structure
 
-The **STL** and **STEP** exports represent every inferred Layer Stack proxy as a simple conceptual solid. They are useful to carry the explanatory architecture into a mechanical/CAD review workflow. They are explicitly not a PDK, GDSII, mask, toleranced mechanical design, package model, fabrication geometry, or electromagnetic solution. Each exported file carries this warning in its own contents.
-
-## Crosstalk Risk Map
-
-The **Crosstalk Risk Map** is a local, transparent prioritisation aid. For each qubit pair, it combines three inspectable factors: whether a direct graph link or shared coupler creates adjacency, their 2D schematic distance, and their frequency detuning. The score labels a pair as low, medium or high risk and shows the factors that produced it. Its role is to help decide which pair deserves attention first in an early topology sketch.
-
-It is **not** an electromagnetic extraction or prediction of a measured coupling value. It does not include capacitance, inductance, metal geometry, substrate, dielectric stack, package modes, drive amplitudes, flux bias, control pulses, crosstalk calibration or a full-wave solver. Those inputs are required before making an engineering or fabrication conclusion.
-
-## Next technical directions
-
-The neutral JSON model is intentionally independent. Future work can add a documented adapter for open tools such as Qiskit Metal or a self-hosted solver, but only through explicit integration configuration and separate validation.
+```text
+src/model.mjs              Local graph, checks, projections, optimizer and OpenQASM
+src/app.js                 Browser controller and interactive views
+src/mechanical-export.mjs  Conceptual STL and STEP generators
+tests/model.test.mjs       Reproducible model contracts
+docs/                      Illustrated documentation and Mermaid source diagrams
+```
 
 ## License
 

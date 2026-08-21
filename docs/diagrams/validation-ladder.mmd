@@ -1,0 +1,27 @@
+flowchart TD
+  A[Edit local schematic] --> B[Structural validation]
+  B --> B1[Unique IDs]
+  B --> B2[Valid graph links]
+  B --> B3[Readout path]
+  B --> B4[Positive frequency]
+  B --> C[Frequency and risk review]
+  C --> C1[Collision < 0.08 GHz]
+  C --> C2[Review zone < 0.20 GHz]
+  C --> C3[Local crosstalk proxy]
+  C --> D[Transparent optimization]
+  D --> D1[Spacing proposal]
+  D --> D2[0.25 GHz target separation]
+  D --> E[Portable outputs]
+  E --> E1[JSON]
+  E --> E2[OpenQASM 3]
+  E --> E3[Conceptual STL / STEP]
+  E -. requires extra data .-> F[External engineering validation]
+  F --> F1[PDK + detailed layout]
+  F --> F2[EM extraction / full-wave solver]
+  F --> F3[Backend transpilation + QPU execution]
+  classDef local fill:#14231f,stroke:#94e2c2,color:#f5fbf7,stroke-width:2px;
+  classDef review fill:#1e2137,stroke:#ae9cff,color:#f7f4ff,stroke-width:2px;
+  classDef external fill:#33241c,stroke:#ffc27d,color:#fff6ed,stroke-width:2px;
+  class A,B,B1,B2,B3,B4,D,D1,D2,E,E1,E2,E3 local;
+  class C,C1,C2,C3 review;
+  class F,F1,F2,F3 external;

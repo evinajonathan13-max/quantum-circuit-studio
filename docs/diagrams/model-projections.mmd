@@ -1,0 +1,17 @@
+flowchart TB
+  Source[(One local circuit document\nnodes + edges + frequencies + positions)]
+  Source --> V1[Schematic 2D\neditable source view]
+  Source --> V2[Topology Lens 3D\nrelationship reading]
+  Source --> V3[Layer Stack\nmetal · Josephson · resonator · control]
+  Source --> V4[Frequency Map\nnearest-neighbour spacing]
+  Source --> V5[Crosstalk Risk Map\nadjacency + distance + detuning]
+  Source --> V6[Optimizer Trace\nvisible proposals]
+  Source --> V7[Exports\nJSON · OpenQASM · STL · STEP]
+  Note[Every view derives from the same local model.\nNo projection becomes a physical simulation by itself.]
+  Source --- Note
+  classDef source fill:#14231f,stroke:#94e2c2,color:#f5fbf7,stroke-width:2px;
+  classDef projection fill:#1e2137,stroke:#ae9cff,color:#f7f4ff,stroke-width:2px;
+  classDef note fill:#33241c,stroke:#ffc27d,color:#fff6ed,stroke-width:2px;
+  class Source source;
+  class V1,V2,V3,V4,V5,V6,V7 projection;
+  class Note note;

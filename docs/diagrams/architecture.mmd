@@ -1,0 +1,21 @@
+flowchart LR
+  User[Designer / researcher] --> UI[Quantum Circuit Studio UI]
+  UI <--> Model[Local circuit model\nJSON schema v0.1]
+  Model --> Graph[Topology graph]
+  Model --> Rules[Local checks\nIDs · links · readout · frequency]
+  Model --> Optimizer[Transparent optimizer\nplacement + frequency targets]
+  Graph --> Schematic[Schematic 2D]
+  Graph --> Topology[Topology Lens 3D]
+  Graph --> Layers[Material Layer Stack]
+  Rules --> Heatmap[Frequency + crosstalk maps]
+  Model --> JSON[Portable JSON]
+  Graph --> QASM[OpenQASM 3 scaffold]
+  Layers --> Mechanical[Conceptual STL / STEP]
+  QASM -. optional handoff .-> QPU[Backend / QPU workflow]
+  Mechanical -. optional handoff .-> EM[Layout / EM workflow]
+  classDef local fill:#14231f,stroke:#94e2c2,color:#f5fbf7,stroke-width:2px;
+  classDef output fill:#1e2137,stroke:#ae9cff,color:#f7f4ff,stroke-width:2px;
+  classDef boundary fill:#33241c,stroke:#ffc27d,color:#fff6ed,stroke-width:2px;
+  class UI,Model,Graph,Rules,Optimizer,Schematic,Topology,Layers,Heatmap local;
+  class JSON,QASM,Mechanical output;
+  class QPU,EM boundary;
