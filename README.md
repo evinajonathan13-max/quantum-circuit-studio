@@ -14,6 +14,8 @@ It is not a fabrication, simulation or tapeout system. It is a compact, inspecta
 | Portable output | Downloadable, neutral JSON model under `quantum-circuit-studio/v0.1`. |
 | OpenQASM export | Downloadable OpenQASM 3 logical scaffold derived from transmons and coupler topology. |
 | Topology Lens | Optional 3D WebGL view of the exact circuit graph; it supports camera exploration and component selection without changing the 2D schematic. |
+| Layer Stack | Optional 3D separation of inferred metal, Josephson, resonator and control layers, with source-component selection. |
+| Frequency Map | Local qubit-frequency heatmap with a 0.08 GHz collision threshold and a 0.20 GHz review zone. |
 | Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
 
 ## Local development
@@ -44,6 +46,12 @@ It does **not** turn a superconducting layout into calibrated pulses, an electro
 The studio now includes an optional **Topology 3D** view backed by the open-source `3d-force-graph` package. It renders exactly the same component IDs and graph links as the 2D schematic, but arranges them as a navigable relational graph. It is a reading and exploration view, not a substitute for the editable physical coordinates in the schematic.
 
 The selection colour palette is semantic: transmons are mint, couplers violet, resonators amber, feedlines blue and flux lines rose. The research and selection rationale is retained in [`VISUALIZATION_TOOLS.md`](VISUALIZATION_TOOLS.md).
+
+## Layer Stack and Frequency Map
+
+**Layer Stack** projects the same local circuit graph into four explicit visual layers: metal, Josephson, resonator and control. A transmon or tunable coupler is shown both as a metal proxy and a Josephson proxy; resonators occupy the resonator layer; feedlines and flux lines occupy the control layer. This is an explanatory 3D stack for topology and design discussion, **not** a process-design kit, mask layer, fabrication stack or electromagnetic solution.
+
+**Frequency Map** reads the current transmon frequencies directly from the local model. It marks nearest-neighbour separation below `0.08 GHz` as a collision and below `0.20 GHz` as a review zone. These are transparent design-aid thresholds already used by the studio’s local validation; they are not a substitute for hardware calibration or full crosstalk analysis.
 
 ## Next technical directions
 

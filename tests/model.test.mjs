@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, removeNode, topologyGraph, validateCircuit } from "../src/model.mjs";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, removeNode, topologyGraph, updateNode, validateCircuit } from "../src/model.mjs";
 
 test("adds components with a stable unique identifier", () => {
   const first = addNode(createEmptyCircuit(), "qubit");
@@ -56,4 +56,23 @@ test("topology graph preserves the local components and only valid graph links",
   assert.equal(graph.nodes.length, 6);
   assert.equal(graph.links.length, 6);
   assert.deepEqual(graph.links[0], { source: "q0", target: "c0" });
+});
+
+test("layer stack projects the circuit into metal, Josephson, resonator and control layers", () => {
+  const graph = layerStackGraph(createDemoCircuit());
+  assert.equal(graph.nodes.length, 9);
+  assert.deepEqual(new Set(graph.nodes.map((node) => node.layer)), new Set(["metal", "josephson", "resonator", "control"]));
+  assert.ok(graph.links.some((link) => link.type === "vertical"));
+  assert.ok(graph.links.some((link) => link.type === "circuit"));
+});
+
+test("frequency heatmap flags a true qubit collision and validation carries the same warning", () => {
+  const collisionCircuit = updateNode(createDemoCircuit(), "q1", { frequency: 5.01 });
+  const collisions = frequencyCollisions(collisionCircuit);
+  const heatmap = frequencyHeatmap(collisionCircuit);
+  const issues = validateCircuit(collisionCircuit);
+  assert.equal(collisions.length, 1);
+  assert.ok(Math.abs(collisions[0].separation - 0.05) < 1e-9);
+  assert.equal(heatmap.find((entry) => entry.id === "q0").risk, "collision");
+  assert.ok(issues.some((issue) => issue.title === "Possible frequency collision"));
 });

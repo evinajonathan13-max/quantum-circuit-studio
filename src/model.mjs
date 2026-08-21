@@ -75,6 +75,66 @@ export function topologyGraph(circuit) {
   };
 }
 
+export const MATERIAL_LAYERS = {
+  metal: { label: "Metal", z: 0 },
+  josephson: { label: "Josephson", z: 16 },
+  resonator: { label: "Resonator", z: 32 },
+  control: { label: "Control", z: 48 }
+};
+
+export function layerStackGraph(circuit) {
+  const nodes = [];
+  const links = [];
+  const primaryId = new Map();
+  const addNode = (source, layer, suffix) => {
+    const id = `${source.id}:${suffix}`;
+    nodes.push({ ...source, id, sourceId: source.id, layer, z: MATERIAL_LAYERS[layer].z });
+    return id;
+  };
+
+  circuit.nodes.forEach((node) => {
+    if (node.kind === "qubit" || node.kind === "coupler") {
+      const metalId = addNode(node, "metal", "metal");
+      const junctionId = addNode(node, "josephson", "jj");
+      links.push({ source: metalId, target: junctionId, type: "vertical" });
+      primaryId.set(node.id, junctionId);
+      return;
+    }
+    const layer = node.kind === "resonator" ? "resonator" : "control";
+    primaryId.set(node.id, addNode(node, layer, layer));
+  });
+
+  circuit.edges.forEach(([source, target]) => {
+    if (primaryId.has(source) && primaryId.has(target)) links.push({ source: primaryId.get(source), target: primaryId.get(target), type: "circuit" });
+  });
+  return { nodes, links };
+}
+
+export function frequencyCollisions(circuit, thresholdGHz = 0.08) {
+  const qubits = circuit.nodes.filter((node) => node.kind === "qubit" && Number.isFinite(Number(node.frequency)));
+  const collisions = [];
+  for (let first = 0; first < qubits.length; first += 1) {
+    for (let second = first + 1; second < qubits.length; second += 1) {
+      const separation = Math.abs(Number(qubits[first].frequency) - Number(qubits[second].frequency));
+      if (separation < thresholdGHz) collisions.push({ first: qubits[first].id, second: qubits[second].id, separation });
+    }
+  }
+  return collisions;
+}
+
+export function frequencyHeatmap(circuit, collisionThresholdGHz = 0.08, watchThresholdGHz = 0.2) {
+  const qubits = circuit.nodes.filter((node) => node.kind === "qubit" && Number.isFinite(Number(node.frequency)));
+  return qubits.map((qubit) => {
+    const nearest = qubits
+      .filter((candidate) => candidate.id !== qubit.id)
+      .map((candidate) => ({ id: candidate.id, separation: Math.abs(Number(qubit.frequency) - Number(candidate.frequency)) }))
+      .sort((first, second) => first.separation - second.separation)[0];
+    const separation = nearest?.separation ?? Infinity;
+    const risk = separation < collisionThresholdGHz ? "collision" : separation < watchThresholdGHz ? "watch" : "stable";
+    return { id: qubit.id, frequency: Number(qubit.frequency), unit: qubit.unit, nearestId: nearest?.id ?? null, separation, risk };
+  });
+}
+
 export function validateCircuit(circuit) {
   const issues = [];
   if (circuit.nodes.length === 0) issues.push({ level: "error", title: "Empty circuit", detail: "Place at least one component before running checks." });
@@ -85,12 +145,7 @@ export function validateCircuit(circuit) {
     if (node.kind !== "flux" && (!Number.isFinite(Number(node.frequency)) || Number(node.frequency) <= 0)) issues.push({ level: "error", title: "Invalid frequency", detail: `${node.id} needs a positive frequency.` });
   });
   const qubits = circuit.nodes.filter((node) => node.kind === "qubit");
-  for (let i = 0; i < qubits.length; i += 1) {
-    for (let j = i + 1; j < qubits.length; j += 1) {
-      const separation = Math.abs(Number(qubits[i].frequency) - Number(qubits[j].frequency));
-      if (separation < 0.08) issues.push({ level: "warning", title: "Possible frequency collision", detail: `${qubits[i].id} and ${qubits[j].id} are separated by only ${separation.toFixed(3)} GHz.` });
-    }
-  }
+  frequencyCollisions(circuit).forEach(({ first, second, separation }) => issues.push({ level: "warning", title: "Possible frequency collision", detail: `${first} and ${second} are separated by only ${separation.toFixed(3)} GHz.` }));
   qubits.forEach((qubit) => {
     const neighbours = linksFor(circuit, qubit.id).map((id) => circuit.nodes.find((node) => node.id === id));
     if (!neighbours.some((node) => node?.kind === "resonator")) issues.push({ level: "warning", title: "No readout path", detail: `${qubit.id} is not linked to a readout resonator.` });

@@ -1,8 +1,11 @@
-import { COMPONENTS, addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, linksFor, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
+import { COMPONENTS, MATERIAL_LAYERS, addNode, connectNodes, createDemoCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, linksFor, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
 
 const canvas = document.querySelector("#circuit-canvas");
 const topologyCanvas = document.querySelector("#topology-canvas");
 const topologyView = document.querySelector("#topology-view");
+const layerStackCanvas = document.querySelector("#layer-stack-canvas");
+const layerStackView = document.querySelector("#layer-stack-view");
+const frequencyCanvas = document.querySelector("#frequency-canvas");
 const layer = document.querySelector("#connection-layer");
 const emptyCanvas = document.querySelector("#empty-canvas");
 const inspector = document.querySelector("#inspector");
@@ -12,10 +15,14 @@ const connectButton = document.querySelector("#connect-selection");
 const state = { circuit: createDemoCircuit(), selection: [], issues: [], view: "schematic" };
 let topologyLens;
 let topologyLoading;
+let layerLens;
+let layerLoading;
 
 const $ = (selector) => document.querySelector(selector);
 const kindClass = (kind) => `node-${kind}`;
 const TOPOLOGY_COLORS = { qubit: "#7aefd4", coupler: "#c8a7fb", resonator: "#efbf77", feedline: "#a6d8ec", flux: "#f0a9d6" };
+const LAYER_COLORS = { metal: "#78b6d9", josephson: "#d5a5ff", resonator: "#f4bb6b", control: "#73e2bc" };
+const VIEW_PANELS = { schematic: canvas, topology: topologyCanvas, layers: layerStackCanvas, frequency: frequencyCanvas };
 
 function syncProjectName() {
   state.circuit = { ...state.circuit, name: projectInput.value.trim() || "untitled-circuit" };
@@ -30,6 +37,10 @@ function downloadCircuit(contents, type, extension) {
   link.download = `${safeName}.${extension}`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function escapeText(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 }
 
 function selectNode(id, additive = false) {
@@ -60,7 +71,7 @@ function renderNodes() {
     const button = document.createElement("button");
     button.className = `circuit-node ${kindClass(node.kind)} ${state.selection.includes(node.id) ? "is-selected" : ""}`;
     button.style.left = `${node.x}%`; button.style.top = `${node.y}%`;
-    button.innerHTML = `<span class="node-symbol">${COMPONENTS[node.kind].glyph}</span><span class="node-id">${node.id}</span><span class="node-frequency">${node.frequency || "CTRL"} ${node.frequency ? node.unit : ""}</span>`;
+    button.innerHTML = `<span class="node-symbol">${COMPONENTS[node.kind].glyph}</span><span class="node-id">${escapeText(node.id)}</span><span class="node-frequency">${node.frequency || "CTRL"} ${node.frequency ? node.unit : ""}</span>`;
     button.title = `${COMPONENTS[node.kind].label}: ${node.id}`;
     button.addEventListener("click", (event) => selectNode(node.id, event.shiftKey));
     canvas.append(button);
@@ -78,7 +89,7 @@ function renderInspector() {
   $("#field-id").value = selected.id; $("#field-frequency").value = selected.frequency;
   $("#field-unit").value = selected.unit; $("#field-x").value = selected.x; $("#field-y").value = selected.y; $("#field-notes").value = selected.notes || "";
   const links = linksFor(state.circuit, selected.id);
-  $("#links-list").innerHTML = links.length ? links.map((id) => `<li><span></span>${id}</li>`).join("") : "<li class=\"muted\">No graph links yet</li>";
+  $("#links-list").innerHTML = links.length ? links.map((id) => `<li><span></span>${escapeText(id)}</li>`).join("") : "<li class=\"muted\">No graph links yet</li>";
 }
 
 function renderValidation() {
@@ -87,7 +98,7 @@ function renderValidation() {
   const hasError = state.issues.some((issue) => issue.level === "error"); const hasWarning = state.issues.some((issue) => issue.level === "warning");
   badge.className = `validation-badge ${hasError ? "error" : hasWarning ? "warning" : "success"}`;
   badge.textContent = hasError ? "ACTION NEEDED" : hasWarning ? "REVIEW" : "PASS";
-  results.innerHTML = state.issues.map((issue) => `<article class="issue ${issue.level}"><span>${issue.level === "success" ? "✓" : issue.level === "warning" ? "!" : "×"}</span><div><strong>${issue.title}</strong><p>${issue.detail}</p></div></article>`).join("");
+  results.innerHTML = state.issues.map((issue) => `<article class="issue ${issue.level}"><span>${issue.level === "success" ? "✓" : issue.level === "warning" ? "!" : "×"}</span><div><strong>${escapeText(issue.title)}</strong><p>${escapeText(issue.detail)}</p></div></article>`).join("");
 }
 
 async function ensureTopologyLens() {
@@ -110,6 +121,27 @@ async function ensureTopologyLens() {
   return topologyLoading;
 }
 
+async function ensureLayerLens() {
+  if (layerLens) return layerLens;
+  if (!layerLoading) {
+    layerLoading = import("3d-force-graph").then(({ default: ForceGraph3D }) => {
+      layerLens = new ForceGraph3D(layerStackView)
+        .backgroundColor("#081420")
+        .showNavInfo(false)
+        .nodeRelSize(4.3)
+        .nodeColor((node) => LAYER_COLORS[node.layer] || "#9bb8c7")
+        .nodeLabel((node) => `${node.sourceId} · ${MATERIAL_LAYERS[node.layer].label} layer`)
+        .linkColor((link) => link.type === "vertical" ? "#4c5e73" : "#66dbc4")
+        .linkOpacity(0.76)
+        .linkWidth((link) => link.type === "vertical" ? 0.45 : 0.95)
+        .nodePositionUpdate((object, coords, node) => { object.position.set(coords.x, coords.y, node.z); return true; })
+        .onNodeClick((node) => selectNode(node.sourceId));
+      return layerLens;
+    });
+  }
+  return layerLoading;
+}
+
 async function renderTopology() {
   if (state.view !== "topology") return;
   const lens = await ensureTopologyLens();
@@ -119,16 +151,53 @@ async function renderTopology() {
   });
 }
 
+async function renderLayerStack() {
+  if (state.view !== "layers") return;
+  const lens = await ensureLayerLens();
+  requestAnimationFrame(() => {
+    lens.width(layerStackCanvas.clientWidth).height(layerStackCanvas.clientHeight).graphData(layerStackGraph(state.circuit));
+    lens.zoomToFit(350, 92);
+  });
+}
+
+function renderFrequencyMap() {
+  if (state.view !== "frequency") return;
+  const entries = frequencyHeatmap(state.circuit);
+  const collisions = frequencyCollisions(state.circuit);
+  const summary = $("#collision-summary");
+  summary.className = collisions.length ? "collision-alert" : "collision-clear";
+  summary.textContent = collisions.length ? `${collisions.length} COLLISION${collisions.length > 1 ? "S" : ""}` : entries.length ? "CLEAR" : "NO QUBITS";
+  if (!entries.length) { $("#frequency-heatmap").innerHTML = "<p class=\"frequency-empty\">Place transmons to generate a frequency map.</p>"; return; }
+  const frequencies = entries.map((entry) => entry.frequency);
+  const min = Math.min(...frequencies) - 0.18;
+  const max = Math.max(...frequencies) + 0.18;
+  const span = Math.max(max - min, 0.4);
+  $("#frequency-heatmap").innerHTML = entries.map((entry) => {
+    const position = ((entry.frequency - min) / span) * 100;
+    const detail = entry.nearestId ? `${entry.nearestId} · Δ ${entry.separation.toFixed(3)} GHz` : "No neighbour";
+    const label = entry.risk === "collision" ? "COLLISION" : entry.risk === "watch" ? "WATCH" : "STABLE";
+    return `<article class="frequency-row risk-${entry.risk}"><div class="frequency-copy"><div><strong>${escapeText(entry.id)}</strong><span>${entry.frequency.toFixed(3)} ${entry.unit}</span></div><p>${escapeText(detail)}</p></div><div class="frequency-track"><i style="left:${position}%"></i></div><b>${label}</b></article>`;
+  }).join("");
+}
+
+function renderActiveView() {
+  void renderTopology();
+  void renderLayerStack();
+  renderFrequencyMap();
+}
+
 function setView(view) {
   state.view = view;
-  const isTopology = view === "topology";
-  canvas.hidden = isTopology;
-  topologyCanvas.hidden = !isTopology;
+  Object.entries(VIEW_PANELS).forEach(([name, panel]) => { panel.hidden = name !== view; });
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === view));
-  $("#canvas-instructions").innerHTML = isTopology
-    ? "<kbd>Drag</kbd> rotate the graph <span>·</span> <kbd>Scroll</kbd> zoom <span>·</span> <kbd>Click</kbd> inspect a component"
-    : "<kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part";
-  void renderTopology();
+  const instructions = {
+    schematic: "<kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part",
+    topology: "<kbd>Drag</kbd> rotate the graph <span>·</span> <kbd>Scroll</kbd> zoom <span>·</span> <kbd>Click</kbd> inspect a component",
+    layers: "<kbd>Drag</kbd> explore the material stack <span>·</span> <kbd>Click</kbd> inspect the source component",
+    frequency: "<kbd>Frequency Map</kbd> collision threshold is 0.08 GHz <span>·</span> amber watch zone is 0.20 GHz"
+  };
+  $("#canvas-instructions").innerHTML = instructions[view];
+  renderActiveView();
 }
 
 function render() {
@@ -136,7 +205,7 @@ function render() {
   $("#node-count").textContent = `${state.circuit.nodes.length} NODES`; $("#edge-count").textContent = `${state.circuit.edges.length} LINKS`;
   $("#component-total").textContent = `${state.circuit.nodes.length} PARTS`;
   connectButton.disabled = state.selection.length !== 2;
-  void renderTopology();
+  renderActiveView();
 }
 
 document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => {
@@ -157,5 +226,5 @@ inspector.addEventListener("input", () => {
 });
 $("#remove-selected").addEventListener("click", () => { const selected = state.selection.at(-1); if (!selected) return; state.circuit = removeNode(state.circuit, selected); state.selection = []; state.issues = []; render(); });
 projectInput.addEventListener("change", syncProjectName);
-window.addEventListener("resize", () => void renderTopology());
+window.addEventListener("resize", renderActiveView);
 render();
