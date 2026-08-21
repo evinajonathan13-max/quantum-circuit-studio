@@ -1,0 +1,16 @@
+{
+  "name": "quantum-circuit-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent visual studio for small superconducting quantum circuit schematics.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "vite": "^7.1.9"
+  }
+}

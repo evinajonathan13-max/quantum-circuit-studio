@@ -1,0 +1,37 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, removeNode, validateCircuit } from "../src/model.mjs";
+
+test("adds components with a stable unique identifier", () => {
+  const first = addNode(createEmptyCircuit(), "qubit");
+  const second = addNode(first, "qubit");
+  assert.equal(first.nodes[0].id, "q0");
+  assert.equal(second.nodes[1].id, "q1");
+});
+
+test("connection is unique even if selected in the reverse order", () => {
+  const circuit = addNode(addNode(createEmptyCircuit(), "qubit"), "qubit");
+  const once = connectNodes(circuit, "q0", "q1");
+  const twice = connectNodes(once, "q1", "q0");
+  assert.equal(twice.edges.length, 1);
+});
+
+test("removing a component also removes its graph links", () => {
+  const circuit = createDemoCircuit();
+  const withoutCoupler = removeNode(circuit, "c0");
+  assert.equal(withoutCoupler.nodes.some((node) => node.id === "c0"), false);
+  assert.equal(withoutCoupler.edges.some(([a, b]) => a === "c0" || b === "c0"), false);
+});
+
+test("demo circuit passes local checks", () => {
+  const issues = validateCircuit(createDemoCircuit());
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].level, "success");
+});
+
+test("export creates a portable JSON document", () => {
+  const exported = JSON.parse(exportCircuit(createDemoCircuit()));
+  assert.equal(exported.schema, "quantum-circuit-studio/v0.1");
+  assert.equal(exported.nodes.length, 6);
+  assert.ok(exported.exportedAt);
+});

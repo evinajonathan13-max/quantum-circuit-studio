@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="An independent local studio for sketching and checking small superconducting quantum circuits." />
+    <title>Quantum Circuit Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <div>
+            <p class="eyebrow">INDEPENDENT RESEARCH TOOL</p>
+            <h1>Quantum Circuit Studio</h1>
+          </div>
+        </div>
+        <div class="project-title">
+          <span class="status-dot"></span>
+          <input id="project-name" aria-label="Project name" value="transmon-microcell" />
+          <span class="local-label">LOCAL WORKSPACE</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="quiet-button" id="load-demo">Load demo</button>
+          <button class="quiet-button" id="export-json">Export JSON</button>
+          <button class="primary-button" id="validate-circuit">Run checks <span>↗</span></button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="left-panel" aria-label="Component library">
+          <div class="panel-heading">
+            <p class="eyebrow">PALETTE</p>
+            <span id="component-total" class="count-chip">0 PARTS</span>
+          </div>
+          <div class="component-group">
+            <p>CORE ELEMENTS</p>
+            <button class="component-button" data-add="qubit"><span class="component-glyph qubit-glyph">Q</span><span><strong>Transmon</strong><small>Fixed-frequency qubit</small></span><b>+</b></button>
+            <button class="component-button" data-add="coupler"><span class="component-glyph coupler-glyph">⌁</span><span><strong>Tunable coupler</strong><small>Flux-controlled link</small></span><b>+</b></button>
+            <button class="component-button" data-add="resonator"><span class="component-glyph resonator-glyph">λ</span><span><strong>Readout resonator</strong><small>Quarter-wave mode</small></span><b>+</b></button>
+          </div>
+          <div class="component-group">
+            <p>ROUTING</p>
+            <button class="component-button" data-add="feedline"><span class="component-glyph line-glyph">—</span><span><strong>Feedline</strong><small>50 Ω microwave route</small></span><b>+</b></button>
+            <button class="component-button" data-add="flux"><span class="component-glyph flux-glyph">ϕ</span><span><strong>Flux line</strong><small>Control infrastructure</small></span><b>+</b></button>
+          </div>
+          <div class="library-note">
+            <span>01</span>
+            <p>Place parts, select two compatible parts, then use <strong>Connect selection</strong> to build the circuit graph.</p>
+          </div>
+        </aside>
+
+        <section class="canvas-column">
+          <div class="canvas-toolbar">
+            <div class="view-switcher" role="group" aria-label="Canvas view">
+              <button class="is-active">SCHEMATIC</button><button disabled>LAYOUT</button><button disabled>FIELD VIEW</button>
+            </div>
+            <div class="canvas-metrics"><span id="node-count">0 NODES</span><span>·</span><span id="edge-count">0 LINKS</span></div>
+          </div>
+          <div class="circuit-canvas" id="circuit-canvas" aria-label="Interactive circuit schematic canvas">
+            <svg class="connection-layer" id="connection-layer" aria-hidden="true"></svg>
+            <div class="canvas-grain" aria-hidden="true"></div>
+            <div class="empty-canvas" id="empty-canvas">
+              <span class="empty-orbit"></span>
+              <h2>Start with a circuit element</h2>
+              <p>Build a small superconducting circuit graph locally, then inspect the parameters and consistency checks.</p>
+            </div>
+          </div>
+          <div class="canvas-footer">
+            <p><kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part</p>
+            <button id="connect-selection" class="connect-button" disabled>Connect selection <span>⌁</span></button>
+          </div>
+        </section>
+
+        <aside class="right-panel" aria-label="Selected component properties">
+          <div class="panel-heading">
+            <p class="eyebrow">INSPECTOR</p>
+            <span id="selection-state" class="count-chip">NO SELECTION</span>
+          </div>
+          <div id="inspector-empty" class="inspector-empty">
+            <div class="inspect-icon">⌘</div>
+            <h2>Select a component</h2>
+            <p>Its physical parameters and graph links will appear here.</p>
+          </div>
+          <form id="inspector" class="inspector-form" hidden>
+            <div class="inspect-title"><span id="inspect-kind" class="inspect-glyph">Q</span><div><p id="inspect-type">TRANSMON</p><h2 id="inspect-name">q0</h2></div></div>
+            <label>Component ID<input id="field-id" name="id" autocomplete="off" /></label>
+            <div class="field-pair">
+              <label>Frequency<input id="field-frequency" name="frequency" type="number" min="1" max="15" step="0.01" /></label>
+              <label>Unit<select id="field-unit" name="unit"><option>GHz</option><option>MHz</option></select></label>
+            </div>
+            <div class="field-pair">
+              <label>X position<input id="field-x" name="x" type="number" min="8" max="92" step="1" /></label>
+              <label>Y position<input id="field-y" name="y" type="number" min="8" max="92" step="1" /></label>
+            </div>
+            <label>Notes<textarea id="field-notes" name="notes" rows="4" placeholder="Purpose, process note, or design assumption"></textarea></label>
+            <div class="links-readout"><p>GRAPH LINKS</p><ul id="links-list"></ul></div>
+            <button type="button" class="danger-button" id="remove-selected">Remove component</button>
+          </form>
+          <div class="validation-panel">
+            <div class="validation-heading"><p class="eyebrow">LOCAL VALIDATION</p><span id="validation-badge" class="validation-badge neutral">READY</span></div>
+            <div id="validation-results" class="validation-results"><p>Run checks to inspect topology, frequency separation and required readout paths.</p></div>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="bottom-strip">
+        <p><span class="dot-grid">⠿</span> ORIGINAL LOCAL CIRCUIT MODEL · NO THIRD-PARTY DESIGN API CALLS</p>
+        <p>JSON schema v0.1 <span>·</span> experimental design aid <span>·</span> not fabrication-ready</p>
+      </footer>
+    </main>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
