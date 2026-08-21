@@ -65,6 +65,16 @@ export function linksFor(circuit, id) {
   return circuit.edges.flatMap(([a, b]) => a === id ? [b] : b === id ? [a] : []);
 }
 
+export function topologyGraph(circuit) {
+  const nodeIds = new Set(circuit.nodes.map((node) => node.id));
+  return {
+    nodes: circuit.nodes.map((node) => ({ ...node })),
+    links: circuit.edges
+      .filter(([source, target]) => nodeIds.has(source) && nodeIds.has(target))
+      .map(([source, target]) => ({ source, target }))
+  };
+}
+
 export function validateCircuit(circuit) {
   const issues = [];
   if (circuit.nodes.length === 0) issues.push({ level: "error", title: "Empty circuit", detail: "Place at least one component before running checks." });

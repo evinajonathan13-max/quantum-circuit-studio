@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, removeNode, validateCircuit } from "../src/model.mjs";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, removeNode, topologyGraph, validateCircuit } from "../src/model.mjs";
 
 test("adds components with a stable unique identifier", () => {
   const first = addNode(createEmptyCircuit(), "qubit");
@@ -49,4 +49,11 @@ test("OpenQASM export explains an empty schematic instead of emitting invalid re
   const qasm = exportOpenQasm(createEmptyCircuit());
   assert.match(qasm, /No transmon components are present/);
   assert.doesNotMatch(qasm, /qubit\[/);
+});
+
+test("topology graph preserves the local components and only valid graph links", () => {
+  const graph = topologyGraph(createDemoCircuit());
+  assert.equal(graph.nodes.length, 6);
+  assert.equal(graph.links.length, 6);
+  assert.deepEqual(graph.links[0], { source: "q0", target: "c0" });
 });

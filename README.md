@@ -13,6 +13,7 @@ It is not a fabrication, simulation or tapeout system. It is a compact, inspecta
 | Local checks | Unique identifier, positive frequency, qubit frequency-separation, readout-path and broken-link checks. |
 | Portable output | Downloadable, neutral JSON model under `quantum-circuit-studio/v0.1`. |
 | OpenQASM export | Downloadable OpenQASM 3 logical scaffold derived from transmons and coupler topology. |
+| Topology Lens | Optional 3D WebGL view of the exact circuit graph; it supports camera exploration and component selection without changing the 2D schematic. |
 | Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
 
 ## Local development
@@ -37,6 +38,12 @@ This is an original implementation. It does not copy source code, UI assets, sch
 The `.qasm` export is intentionally a **logical topology adapter**. Each placed transmon becomes an OpenQASM register element; qubits connected through a tunable coupler become a `cz` interaction; and all logical qubits receive a measurement scaffold. It is useful as a portable starting point for logical-circuit workflows.
 
 It does **not** turn a superconducting layout into calibrated pulses, an electromagnetic simulation, a fabrication file or a hardware-ready schedule. Component frequencies and layout geometry are retained as comments for traceability rather than treated as executable QASM parameters.
+
+## Topology Lens
+
+The studio now includes an optional **Topology 3D** view backed by the open-source `3d-force-graph` package. It renders exactly the same component IDs and graph links as the 2D schematic, but arranges them as a navigable relational graph. It is a reading and exploration view, not a substitute for the editable physical coordinates in the schematic.
+
+The selection colour palette is semantic: transmons are mint, couplers violet, resonators amber, feedlines blue and flux lines rose. The research and selection rationale is retained in [`VISUALIZATION_TOOLS.md`](VISUALIZATION_TOOLS.md).
 
 ## Next technical directions
 

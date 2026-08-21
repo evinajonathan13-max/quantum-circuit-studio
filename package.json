@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "3d-force-graph": "^1.80.0"
   }
 }

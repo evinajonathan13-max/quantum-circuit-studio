@@ -1,16 +1,21 @@
-import { COMPONENTS, addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, linksFor, removeNode, updateNode, validateCircuit } from "./model.mjs";
+import { COMPONENTS, addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, linksFor, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
 
 const canvas = document.querySelector("#circuit-canvas");
+const topologyCanvas = document.querySelector("#topology-canvas");
+const topologyView = document.querySelector("#topology-view");
 const layer = document.querySelector("#connection-layer");
 const emptyCanvas = document.querySelector("#empty-canvas");
 const inspector = document.querySelector("#inspector");
 const inspectorEmpty = document.querySelector("#inspector-empty");
 const projectInput = document.querySelector("#project-name");
 const connectButton = document.querySelector("#connect-selection");
-const state = { circuit: createDemoCircuit(), selection: [], issues: [] };
+const state = { circuit: createDemoCircuit(), selection: [], issues: [], view: "schematic" };
+let topologyLens;
+let topologyLoading;
 
 const $ = (selector) => document.querySelector(selector);
 const kindClass = (kind) => `node-${kind}`;
+const TOPOLOGY_COLORS = { qubit: "#7aefd4", coupler: "#c8a7fb", resonator: "#efbf77", feedline: "#a6d8ec", flux: "#f0a9d6" };
 
 function syncProjectName() {
   state.circuit = { ...state.circuit, name: projectInput.value.trim() || "untitled-circuit" };
@@ -85,28 +90,72 @@ function renderValidation() {
   results.innerHTML = state.issues.map((issue) => `<article class="issue ${issue.level}"><span>${issue.level === "success" ? "✓" : issue.level === "warning" ? "!" : "×"}</span><div><strong>${issue.title}</strong><p>${issue.detail}</p></div></article>`).join("");
 }
 
+async function ensureTopologyLens() {
+  if (topologyLens) return topologyLens;
+  if (!topologyLoading) {
+    topologyLoading = import("3d-force-graph").then(({ default: ForceGraph3D }) => {
+      topologyLens = new ForceGraph3D(topologyView)
+        .backgroundColor("#081420")
+        .showNavInfo(false)
+        .nodeRelSize(4.8)
+        .nodeColor((node) => TOPOLOGY_COLORS[node.kind] || "#9bb8c7")
+        .nodeLabel((node) => `${node.id} · ${COMPONENTS[node.kind].label} · ${node.frequency || "control"} ${node.frequency ? node.unit : ""}`)
+        .linkColor(() => "#5cc7b5")
+        .linkOpacity(0.72)
+        .linkWidth(0.8)
+        .onNodeClick((node) => selectNode(node.id));
+      return topologyLens;
+    });
+  }
+  return topologyLoading;
+}
+
+async function renderTopology() {
+  if (state.view !== "topology") return;
+  const lens = await ensureTopologyLens();
+  requestAnimationFrame(() => {
+    lens.width(topologyCanvas.clientWidth).height(topologyCanvas.clientHeight).graphData(topologyGraph(state.circuit));
+    lens.zoomToFit(350, 82);
+  });
+}
+
+function setView(view) {
+  state.view = view;
+  const isTopology = view === "topology";
+  canvas.hidden = isTopology;
+  topologyCanvas.hidden = !isTopology;
+  document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === view));
+  $("#canvas-instructions").innerHTML = isTopology
+    ? "<kbd>Drag</kbd> rotate the graph <span>·</span> <kbd>Scroll</kbd> zoom <span>·</span> <kbd>Click</kbd> inspect a component"
+    : "<kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part";
+  void renderTopology();
+}
+
 function render() {
   renderConnections(); renderNodes(); renderInspector(); renderValidation();
   $("#node-count").textContent = `${state.circuit.nodes.length} NODES`; $("#edge-count").textContent = `${state.circuit.edges.length} LINKS`;
   $("#component-total").textContent = `${state.circuit.nodes.length} PARTS`;
   connectButton.disabled = state.selection.length !== 2;
+  void renderTopology();
 }
 
 document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => {
   state.circuit = addNode(state.circuit, button.dataset.add); state.selection = [state.circuit.nodes.at(-1).id]; state.issues = []; render();
 }));
 
+document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
 connectButton.addEventListener("click", () => { state.circuit = connectNodes(state.circuit, ...state.selection); state.issues = []; render(); });
 $("#validate-circuit").addEventListener("click", () => { syncProjectName(); state.issues = validateCircuit(state.circuit); render(); });
 $("#load-demo").addEventListener("click", () => { state.circuit = createDemoCircuit(); projectInput.value = state.circuit.name; state.selection = []; state.issues = []; render(); });
 $("#export-json").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportCircuit(state.circuit), "application/json", "json"); });
 $("#export-qasm").addEventListener("click", () => { syncProjectName(); downloadCircuit(exportOpenQasm(state.circuit), "text/plain;charset=utf-8", "qasm"); });
 
-inspector.addEventListener("input", (event) => {
+inspector.addEventListener("input", () => {
   const selected = state.selection.at(-1); if (!selected) return;
   const values = { id: $("#field-id").value.trim(), frequency: Number($("#field-frequency").value), unit: $("#field-unit").value, x: Number($("#field-x").value), y: Number($("#field-y").value), notes: $("#field-notes").value };
   state.circuit = updateNode(state.circuit, selected, values); state.selection = [values.id]; state.issues = []; render();
 });
 $("#remove-selected").addEventListener("click", () => { const selected = state.selection.at(-1); if (!selected) return; state.circuit = removeNode(state.circuit, selected); state.selection = []; state.issues = []; render(); });
 projectInput.addEventListener("change", syncProjectName);
+window.addEventListener("resize", () => void renderTopology());
 render();

@@ -59,7 +59,7 @@
         <section class="canvas-column">
           <div class="canvas-toolbar">
             <div class="view-switcher" role="group" aria-label="Canvas view">
-              <button class="is-active">SCHEMATIC</button><button disabled>LAYOUT</button><button disabled>FIELD VIEW</button>
+              <button class="is-active" data-view="schematic">SCHEMATIC</button><button data-view="topology">TOPOLOGY 3D</button>
             </div>
             <div class="canvas-metrics"><span id="node-count">0 NODES</span><span>·</span><span id="edge-count">0 LINKS</span></div>
           </div>
@@ -72,8 +72,12 @@
               <p>Build a small superconducting circuit graph locally, then inspect the parameters and consistency checks.</p>
             </div>
           </div>
+          <div class="topology-canvas" id="topology-canvas" aria-label="Interactive 3D circuit topology" hidden>
+            <div id="topology-view"></div>
+            <div class="topology-overlay"><span>TOPOLOGY LENS</span><p>Graph relation view · not physical geometry</p></div>
+          </div>
           <div class="canvas-footer">
-            <p><kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part</p>
+            <p id="canvas-instructions"><kbd>Click</kbd> select a part <span>·</span> <kbd>Shift + click</kbd> select a second compatible part</p>
             <button id="connect-selection" class="connect-button" disabled>Connect selection <span>⌁</span></button>
           </div>
         </section>
