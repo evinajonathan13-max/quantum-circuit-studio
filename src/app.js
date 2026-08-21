@@ -1,5 +1,6 @@
-import { COMPONENTS, MATERIAL_LAYERS, addNode, connectNodes, createDemoCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, linksFor, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
+import { COMPONENTS, MATERIAL_LAYERS, addNode, connectNodes, createDemoCircuit, crosstalkRiskAnalysis, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, linksFor, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "./model.mjs";
 import { exportConceptualStep, exportConceptualStl } from "./mechanical-export.mjs";
+import "./crosstalk.css";
 
 const canvas = document.querySelector("#circuit-canvas");
 const topologyCanvas = document.querySelector("#topology-canvas");
@@ -179,7 +180,7 @@ function renderFrequencyMap() {
   const summary = $("#collision-summary");
   summary.className = collisions.length ? "collision-alert" : "collision-clear";
   summary.textContent = collisions.length ? `${collisions.length} COLLISION${collisions.length > 1 ? "S" : ""}` : entries.length ? "CLEAR" : "NO QUBITS";
-  if (!entries.length) { $("#frequency-heatmap").innerHTML = "<p class=\"frequency-empty\">Place transmons to generate a frequency map.</p>"; return; }
+  if (!entries.length) { $("#frequency-heatmap").innerHTML = "<p class=\"frequency-empty\">Place transmons to generate a frequency map.</p>"; renderCrosstalk(); return; }
   const frequencies = entries.map((entry) => entry.frequency);
   const min = Math.min(...frequencies) - 0.18;
   const max = Math.max(...frequencies) + 0.18;
@@ -189,6 +190,21 @@ function renderFrequencyMap() {
     const detail = entry.nearestId ? `${entry.nearestId} · Δ ${entry.separation.toFixed(3)} GHz` : "No neighbour";
     const label = entry.risk === "collision" ? "COLLISION" : entry.risk === "watch" ? "WATCH" : "STABLE";
     return `<article class="frequency-row risk-${entry.risk}"><div class="frequency-copy"><div><strong>${escapeText(entry.id)}</strong><span>${entry.frequency.toFixed(3)} ${entry.unit}</span></div><p>${escapeText(detail)}</p></div><div class="frequency-track"><i style="left:${position}%"></i></div><b>${label}</b></article>`;
+  }).join("");
+  renderCrosstalk();
+}
+
+function renderCrosstalk() {
+  const pairs = crosstalkRiskAnalysis(state.circuit);
+  const summary = $("#crosstalk-summary");
+  const results = $("#crosstalk-results");
+  const elevated = pairs.filter((pair) => pair.level !== "low");
+  summary.className = elevated.some((pair) => pair.level === "high") ? "crosstalk-high" : elevated.length ? "crosstalk-medium" : "crosstalk-low";
+  summary.textContent = pairs.length ? `${elevated.length} ELEVATED` : "NO PAIRS";
+  if (!pairs.length) { results.innerHTML = "<p class=\"frequency-empty\">Place at least two transmons to analyse a local risk pair.</p>"; return; }
+  results.innerHTML = pairs.map((pair) => {
+    const topology = pair.couplingPaths.length ? `coupler ${pair.couplingPaths.join(", ")}` : pair.adjacent ? "direct graph link" : "no direct graph path";
+    return `<article class="crosstalk-row crosstalk-${pair.level}"><div class="crosstalk-pair"><strong>${escapeText(pair.first)} ↔ ${escapeText(pair.second)}</strong><span>${pair.adjacent ? "ADJACENT" : "SPATIAL"}</span></div><div class="crosstalk-factors"><span>topology ${pair.factors.topology}% · ${escapeText(topology)}</span><span>distance ${pair.distance.toFixed(1)} · detuning ${pair.detuning.toFixed(3)} GHz</span></div><div class="crosstalk-score"><i style="width:${pair.score}%"></i><b>${pair.score}/100 · ${pair.level.toUpperCase()}</b></div></article>`;
   }).join("");
 }
 

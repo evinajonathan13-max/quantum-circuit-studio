@@ -197,6 +197,45 @@ export function optimizeCircuit(circuit, { targetFrequencySeparationGHz = 0.25 }
   };
 }
 
+export function crosstalkRiskAnalysis(circuit) {
+  const qubits = circuit.nodes.filter((node) => node.kind === "qubit" && Number.isFinite(Number(node.frequency)));
+  const couplers = circuit.nodes.filter((node) => node.kind === "coupler");
+  const hasDirectLink = (first, second) => circuit.edges.some(([a, b]) => (a === first && b === second) || (a === second && b === first));
+  const sharedCouplers = (first, second) => couplers.filter((coupler) => {
+    const links = linksFor(circuit, coupler.id);
+    return links.includes(first) && links.includes(second);
+  }).map((coupler) => coupler.id);
+  const clamp = (value) => Math.max(0, Math.min(1, value));
+  const pairs = [];
+
+  for (let first = 0; first < qubits.length; first += 1) {
+    for (let second = first + 1; second < qubits.length; second += 1) {
+      const a = qubits[first]; const b = qubits[second];
+      const couplingPaths = sharedCouplers(a.id, b.id);
+      const direct = hasDirectLink(a.id, b.id);
+      const distance = Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
+      const detuning = Math.abs(Number(a.frequency) - Number(b.frequency));
+      const topologyFactor = couplingPaths.length ? 0.9 : direct ? 0.7 : 0.15;
+      const spatialFactor = clamp((60 - distance) / 60);
+      const spectralFactor = clamp((0.5 - detuning) / 0.5);
+      const score = Math.round((0.5 * topologyFactor + 0.32 * spectralFactor + 0.18 * spatialFactor) * 100);
+      const level = score >= 70 ? "high" : score >= 45 ? "medium" : "low";
+      pairs.push({
+        first: a.id,
+        second: b.id,
+        adjacent: couplingPaths.length > 0 || direct,
+        couplingPaths,
+        distance,
+        detuning,
+        factors: { topology: Math.round(topologyFactor * 100), spatial: Math.round(spatialFactor * 100), spectral: Math.round(spectralFactor * 100) },
+        score,
+        level
+      });
+    }
+  }
+  return pairs.sort((first, second) => second.score - first.score);
+}
+
 export function validateCircuit(circuit) {
   const issues = [];
   if (circuit.nodes.length === 0) issues.push({ level: "error", title: "Empty circuit", detail: "Place at least one component before running checks." });

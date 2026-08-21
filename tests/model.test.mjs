@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "../src/model.mjs";
+import { addNode, connectNodes, createDemoCircuit, createEmptyCircuit, crosstalkRiskAnalysis, exportCircuit, exportOpenQasm, frequencyCollisions, frequencyHeatmap, layerStackGraph, optimizeCircuit, removeNode, topologyGraph, updateNode, validateCircuit } from "../src/model.mjs";
 import { exportConceptualStep, exportConceptualStl } from "../src/mechanical-export.mjs";
 
 test("adds components with a stable unique identifier", () => {
@@ -97,4 +97,16 @@ test("conceptual mechanical exports retain explicit non-fabrication markers", ()
   assert.match(step, /^ISO-10303-21;/);
   assert.match(step, /CONCEPTUAL GEOMETRY ONLY/);
   assert.match(step, /conceptual metal layer proxy/);
+});
+
+test("local crosstalk analysis distinguishes adjacent near-resonant qubits from low-risk pairs", () => {
+  let highRiskCircuit = updateNode(createDemoCircuit(), "q1", { frequency: 5.01, x: 32, y: 48 });
+  const highRisk = crosstalkRiskAnalysis(highRiskCircuit).find((pair) => pair.first === "q0" && pair.second === "q1");
+  let lowRiskCircuit = addNode(addNode(createEmptyCircuit(), "qubit"), "qubit");
+  lowRiskCircuit = updateNode(lowRiskCircuit, "q1", { frequency: 6.2, x: 88, y: 88 });
+  const lowRisk = crosstalkRiskAnalysis(lowRiskCircuit)[0];
+  assert.equal(highRisk.adjacent, true);
+  assert.equal(highRisk.level, "high");
+  assert.equal(lowRisk.adjacent, false);
+  assert.equal(lowRisk.level, "low");
 });

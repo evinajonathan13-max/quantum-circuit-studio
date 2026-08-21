@@ -18,6 +18,7 @@ It is not a fabrication, simulation or tapeout system. It is a compact, inspecta
 | Frequency Map | Local qubit-frequency heatmap with a 0.08 GHz collision threshold and a 0.20 GHz review zone. |
 | Local optimizer | Applies a transparent spacing heuristic and proposes a 0.25 GHz minimum qubit-frequency separation. |
 | Mechanical exports | Downloadable ASCII STL and STEP conceptual proxies of the Layer Stack. |
+| Crosstalk Risk Map | Explainable local score for each qubit pair using graph adjacency, schematic proximity and frequency detuning. |
 | Example design | A small two-transmon microcell with readout resonators and a shared feedline. |
 
 ## Local development
@@ -60,6 +61,12 @@ The selection colour palette is semantic: transmons are mint, couplers violet, r
 **Optimize layout** makes two deliberately separate local proposals. First, it redistributes qubits on an inspectable grid, centers coupled elements between their connected qubits, aligns readout resonators and places the shared feedline beneath them. This is a **spacing heuristic**, not an electromagnetic, crosstalk, routing or yield solver. Second, it raises only the frequency targets that violate a local `0.25 GHz` minimum separation. The resulting placement and every frequency target changed are displayed in the Optimizer Trace. These target values remain proposals that need device-specific calibration.
 
 The **STL** and **STEP** exports represent every inferred Layer Stack proxy as a simple conceptual solid. They are useful to carry the explanatory architecture into a mechanical/CAD review workflow. They are explicitly not a PDK, GDSII, mask, toleranced mechanical design, package model, fabrication geometry, or electromagnetic solution. Each exported file carries this warning in its own contents.
+
+## Crosstalk Risk Map
+
+The **Crosstalk Risk Map** is a local, transparent prioritisation aid. For each qubit pair, it combines three inspectable factors: whether a direct graph link or shared coupler creates adjacency, their 2D schematic distance, and their frequency detuning. The score labels a pair as low, medium or high risk and shows the factors that produced it. Its role is to help decide which pair deserves attention first in an early topology sketch.
+
+It is **not** an electromagnetic extraction or prediction of a measured coupling value. It does not include capacitance, inductance, metal geometry, substrate, dielectric stack, package modes, drive amplitudes, flux bias, control pulses, crosstalk calibration or a full-wave solver. Those inputs are required before making an engineering or fabrication conclusion.
 
 ## Next technical directions
 

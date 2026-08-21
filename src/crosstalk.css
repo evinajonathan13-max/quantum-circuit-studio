@@ -1,0 +1,15 @@
+.crosstalk-panel { margin-top:25px; padding-top:20px; border-top:1px solid #244154; }
+.crosstalk-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.crosstalk-heading span { color:#c7a5f7; font:10px var(--mono); letter-spacing:.12em; }
+.crosstalk-heading p { margin:7px 0 0; color:#7794a4; font-size:11px; }
+.crosstalk-heading strong { padding:7px 9px; border-radius:4px; font:9px var(--mono); letter-spacing:.08em; }
+.crosstalk-low { color:#82e6c2; background:#163e39; border:1px solid #2d7063; }
+.crosstalk-medium { color:#f3c376; background:#4b3a26; border:1px solid #725b39; }
+.crosstalk-high { color:#ff9b90; background:#4a2a2c; border:1px solid #824744; }
+.crosstalk-results { display:grid; gap:10px; margin-top:17px; }
+.crosstalk-row { display:grid; grid-template-columns:135px minmax(160px,1fr) 155px; gap:13px; align-items:center; padding:11px 12px; border:1px solid #294355; border-radius:6px; background:#0a1723; }
+.crosstalk-pair { display:grid; gap:4px; }.crosstalk-pair strong { color:#e0eef0; font:11px var(--mono); }.crosstalk-pair span { color:#7792a3; font:8px var(--mono); letter-spacing:.08em; }
+.crosstalk-factors { display:grid; gap:4px; color:#7f9cab; font:9px var(--mono); line-height:1.35; }
+.crosstalk-score { display:grid; grid-template-columns:1fr; gap:6px; }.crosstalk-score::before { content:""; grid-row:1; height:7px; border-radius:20px; background:#203746; }.crosstalk-score i { grid-row:1; height:7px; border-radius:20px; background:#6ed1bf; z-index:1; }.crosstalk-score b { color:#8ba5b1; font:8px var(--mono); letter-spacing:.04em; }
+.crosstalk-medium .crosstalk-score i { background:#e9b96e; }.crosstalk-high .crosstalk-score i { background:#ec8279; }.crosstalk-high { border-color:#6e4044; }.crosstalk-medium { border-color:#5f4f32; }
+.crosstalk-disclaimer { margin:15px 0 0; color:#6d8794; font:10px/1.5 var(--sans); }
